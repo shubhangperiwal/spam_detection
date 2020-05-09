@@ -1,0 +1,128 @@
+---
+title: "SML Assignment 2"
+author: "Shubhang Periwal 19201104"
+date: "3/31/2020"
+output: pdf_document
+---
+
+```{r}
+library(kernlab)
+library(ROCR)
+data(spam)
+dt <- spam[,49:58]
+# breaking data into test and train sets
+set.seed(19201104)
+tot <- nrow(dt)
+n <- floor(tot*0.8)
+# training indices
+train <- sample((1:tot),n)
+#testing indices
+test <- setdiff(1:tot,c(train))
+str(dt)
+```
+
+
+
+```{r}
+fit = glm(type ~ ., data = dt[train,], family = "binomial")
+summary(fit)
+```
+
+Coefficient analysis
+```{r}
+chd <- fit$coefficients["charDollar"]
+chex <- fit$coefficients["charExclamation"]
+
+exp(chd)
+exp(chex)
+
+sm <- summary(fit)
+se_chd <- sm$coef["charDollar",2]
+se_chex <- sm$coeff["charExclamation",2]
+
+#calculating 95% interval for char Dollar
+chd_l <- chd - 1.96*se_chd
+chd_u <- chd + 1.96*se_chd
+chd_l
+chd_u
+#calculating 95% interval for char exclamation
+chex_l <- chex - 1.96*se_chex
+chex_u <- chex + 1.96*se_chex
+chex_l
+chex_u
+
+```
+
+
+
+```{r}
+p <- predict(fit, dt[test,])
+tau <- 0.5
+pred = ifelse(p > tau, "SPAM", "NON-SPAM")
+p <- fitted(fit)
+res <- table(dt[test,]$type, pred)
+res
+res<- as.matrix(res)
+accuracy <- (res[1,1] + res[2,2])/sum(res)
+accuracy
+```
+
+
+
+
+```{r}
+predobj <- prediction(fitted(fit), dt[train,]$type)
+perf <- performance(predobj, "tpr", "fpr")
+plot(perf)
+abline(0, 1, col = "darkorange", lty = 2)
+auc = performance(predobj, "auc")
+auc@y.values
+```
+
+```{r}
+sens <- performance(predobj, "sens")
+spec <- performance(predobj, "spec")
+tau <- sens@x.values[[1]]
+sensSpec <- sens@y.values[[1]] + spec@y.values[[1]]
+best <- which.max(sensSpec)
+plot(tau, sensSpec, type = "l")
+points(tau[best], sensSpec[best], pch = 19, col = adjustcolor("darkorange2", 0.5))
+```
+
+```{r}
+p <- predict(fit, dt[test,])
+tau[best]
+pred = ifelse(p > tau[best], "spam", "nonspam")
+res<- table(dt[test,]$type, pred)
+res
+res<- as.matrix(res)
+accuracy <- (res[1,1] + res[2,2])/sum(res)
+accuracy
+```
+```{r}
+fit = glm(type ~ ., data = dt, family = "binomial")
+summary(fit)
+p <- predict(fit,dt)
+tau <- 0.5
+pred = ifelse(p > tau, "SPAM", "NON-SPAM")
+p <- fitted(fit)
+res <- table(dt$type, pred)
+res
+res<- as.matrix(res)
+accuracy <- (res[1,1] + res[2,2])/sum(res)
+accuracy
+sens <- performance(predobj, "sens")
+spec <- performance(predobj, "spec")
+tau <- sens@x.values[[1]]
+sensSpec <- sens@y.values[[1]] + spec@y.values[[1]]
+best <- which.max(sensSpec)
+plot(tau, sensSpec, type = "l")
+points(tau[best], sensSpec[best], pch = 19, col = adjustcolor("darkorange2", 0.5))
+
+predobj <- prediction(fitted(fit), dt$type)
+perf <- performance(predobj, "tpr", "fpr")
+plot(perf)
+abline(0, 1, col = "darkorange", lty = 2)
+auc = performance(predobj, "auc")
+auc@y.values
+```
